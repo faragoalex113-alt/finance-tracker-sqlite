@@ -20,13 +20,55 @@ def create_table():
     conn.close()
 
 
+def get_valid_amount():
+    while True:
+        user_input = input("Összeg: ")
+
+        try:
+            amount = float(user_input)
+
+            if amount <= 0:
+                print("Az összeg legyen 0-nál nagyobb.")
+            else:
+                return amount
+
+        except ValueError:
+            print("Hiba: csak számot adhatsz meg.")
+
+
+def get_valid_type():
+    while True:
+        type_ = input("Típus (income/expense): ").lower().strip()
+
+        if type_ == "income" or type_ == "expense":
+            return type_
+        else:
+            print("Hiba: csak 'income' vagy 'expense' lehet.")
+
+
+def get_valid_id():
+    while True:
+        user_input = input("Add meg a tranzakció ID-ját: ")
+
+        try:
+            transaction_id = int(user_input)
+
+            if transaction_id <= 0:
+                print("Az ID legyen 1 vagy nagyobb.")
+            else:
+                return transaction_id
+
+        except ValueError:
+            print("Hiba: az ID csak egész szám lehet.")
+
+
 def add_transaction():
     conn = sqlite3.connect("finance.db")
     cursor = conn.cursor()
 
-    amount = float(input("Összeg: "))
-    category = input("Kategória: ")
-    type_ = input("Típus (income/expense): ").lower()
+    amount = get_valid_amount()
+    category = input("Kategória: ").strip()
+    type_ = get_valid_type()
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     cursor.execute("""
@@ -87,7 +129,7 @@ def delete_transaction():
     conn = sqlite3.connect("finance.db")
     cursor = conn.cursor()
 
-    transaction_id = int(input("Add meg a törlendő tranzakció ID-ját: "))
+    transaction_id = get_valid_id()
 
     cursor.execute("SELECT * FROM transactions WHERE id = ?", (transaction_id,))
     transaction = cursor.fetchone()
@@ -100,7 +142,7 @@ def delete_transaction():
     print("\nTörlésre kijelölt tranzakció:")
     print(f"ID: {transaction[0]} | Összeg: {transaction[1]} | Kategória: {transaction[2]} | Típus: {transaction[3]} | Dátum: {transaction[4]}")
 
-    confirm = input("Biztos törlöd? (i/n): ").lower()
+    confirm = input("Biztos törlöd? (i/n): ").lower().strip()
 
     if confirm == "i":
         cursor.execute("DELETE FROM transactions WHERE id = ?", (transaction_id,))
@@ -123,7 +165,7 @@ def main():
         print("4 - Tranzakció törlése")
         print("5 - Kilépés")
 
-        choice = input("Válassz egy opciót: ")
+        choice = input("Válassz egy opciót: ").strip()
 
         if choice == "1":
             add_transaction()
