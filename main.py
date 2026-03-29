@@ -182,7 +182,8 @@ def main():
         print("4 - Tranzakció törlése")
         print("5 - Csak bevételek listázása")
         print("6 - Csak kiadások listázása")
-        print("7 - Kilépés")
+        print("7 - Keresés kategória alapján")
+        print("8 - Kilépés")
 
         choice = input("Válassz egy opciót: ").strip()
 
@@ -199,10 +200,31 @@ def main():
         elif choice == "6":
             list_transactions_by_type("expense")
         elif choice == "7":
+            search_by_category()
+        elif choice == "8":
             print("Kilépés...")
             break
         else:
             print("Érvénytelen választás, próbáld újra.")
+
+def search_by_category():
+    conn = sqlite3.connect("finance.db")
+    cursor = conn.cursor()
+
+    category = input("Add meg a kategóriát: ").strip().lower()
+
+    cursor.execute("SELECT * FROM transactions WHERE category = ?", (category,))
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("Nincs ilyen kategóriájú tranzakció.")
+    else:
+        print(f"\n--- '{category}' KATEGÓRIA ---")
+        for row in rows:
+            print(f"ID: {row[0]} | Összeg: {row[1]} | Kategória: {row[2]} | Típus: {row[3]} | Dátum: {row[4]}")
+
+    conn.close()
+
 
 
 main()
