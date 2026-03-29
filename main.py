@@ -92,7 +92,24 @@ def list_transactions():
     if not rows:
         print("Nincs még tranzakció.")
     else:
-        print("\n--- TRANZAKCIÓK ---")
+        print("\n--- ÖSSZES TRANZAKCIÓ ---")
+        for row in rows:
+            print(f"ID: {row[0]} | Összeg: {row[1]} | Kategória: {row[2]} | Típus: {row[3]} | Dátum: {row[4]}")
+
+    conn.close()
+
+
+def list_transactions_by_type(transaction_type):
+    conn = sqlite3.connect("finance.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM transactions WHERE type = ?", (transaction_type,))
+    rows = cursor.fetchall()
+
+    if not rows:
+        print(f"Nincs {transaction_type} típusú tranzakció.")
+    else:
+        print(f"\n--- {transaction_type.upper()} TRANZAKCIÓK ---")
         for row in rows:
             print(f"ID: {row[0]} | Összeg: {row[1]} | Kategória: {row[2]} | Típus: {row[3]} | Dátum: {row[4]}")
 
@@ -160,10 +177,12 @@ def main():
     while True:
         print("\n===== FINANCE TRACKER =====")
         print("1 - Új tranzakció hozzáadása")
-        print("2 - Tranzakciók listázása")
+        print("2 - Összes tranzakció listázása")
         print("3 - Összesítés")
         print("4 - Tranzakció törlése")
-        print("5 - Kilépés")
+        print("5 - Csak bevételek listázása")
+        print("6 - Csak kiadások listázása")
+        print("7 - Kilépés")
 
         choice = input("Válassz egy opciót: ").strip()
 
@@ -176,6 +195,10 @@ def main():
         elif choice == "4":
             delete_transaction()
         elif choice == "5":
+            list_transactions_by_type("income")
+        elif choice == "6":
+            list_transactions_by_type("expense")
+        elif choice == "7":
             print("Kilépés...")
             break
         else:
