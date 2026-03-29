@@ -83,6 +83,35 @@ def show_summary():
     conn.close()
 
 
+def delete_transaction():
+    conn = sqlite3.connect("finance.db")
+    cursor = conn.cursor()
+
+    transaction_id = int(input("Add meg a törlendő tranzakció ID-ját: "))
+
+    cursor.execute("SELECT * FROM transactions WHERE id = ?", (transaction_id,))
+    transaction = cursor.fetchone()
+
+    if transaction is None:
+        print("Nincs ilyen ID-jú tranzakció.")
+        conn.close()
+        return
+
+    print("\nTörlésre kijelölt tranzakció:")
+    print(f"ID: {transaction[0]} | Összeg: {transaction[1]} | Kategória: {transaction[2]} | Típus: {transaction[3]} | Dátum: {transaction[4]}")
+
+    confirm = input("Biztos törlöd? (i/n): ").lower()
+
+    if confirm == "i":
+        cursor.execute("DELETE FROM transactions WHERE id = ?", (transaction_id,))
+        conn.commit()
+        print("Tranzakció törölve.")
+    else:
+        print("Törlés megszakítva.")
+
+    conn.close()
+
+
 def main():
     create_table()
 
@@ -91,7 +120,8 @@ def main():
         print("1 - Új tranzakció hozzáadása")
         print("2 - Tranzakciók listázása")
         print("3 - Összesítés")
-        print("4 - Kilépés")
+        print("4 - Tranzakció törlése")
+        print("5 - Kilépés")
 
         choice = input("Válassz egy opciót: ")
 
@@ -102,6 +132,8 @@ def main():
         elif choice == "3":
             show_summary()
         elif choice == "4":
+            delete_transaction()
+        elif choice == "5":
             print("Kilépés...")
             break
         else:
