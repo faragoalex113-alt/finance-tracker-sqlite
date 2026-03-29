@@ -183,7 +183,8 @@ def main():
         print("5 - Csak bevételek listázása")
         print("6 - Csak kiadások listázása")
         print("7 - Keresés kategória alapján")
-        print("8 - Kilépés")
+        print("8 - Havi összesítés")
+        print("9 - Kilépés")
 
         choice = input("Válassz egy opciót: ").strip()
 
@@ -202,6 +203,8 @@ def main():
         elif choice == "7":
             search_by_category()
         elif choice == "8":
+            monthly_summary()
+        elif choice == "9":
             print("Kilépés...")
             break
         else:
@@ -225,6 +228,36 @@ def search_by_category():
 
     conn.close()
 
+def monthly_summary():
+    conn = sqlite3.connect("finance.db")
+    cursor = conn.cursor()
 
+    month = input("Add meg a hónapot (pl: 2026-03): ").strip()
+
+    cursor.execute("SELECT * FROM transactions WHERE date LIKE ?", (f"{month}%",))
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("Nincs adat erre a hónapra.")
+        conn.close()
+        return
+
+    total_income = 0
+    total_expense = 0
+
+    for row in rows:
+        if row[3] == "income":
+            total_income += row[1]
+        elif row[3] == "expense":
+            total_expense += row[1]
+
+    balance = total_income - total_expense
+
+    print(f"\n--- {month} ÖSSZESÍTÉS ---")
+    print(f"Bevétel: {total_income}")
+    print(f"Kiadás: {total_expense}")
+    print(f"Egyenleg: {balance}")
+
+    conn.close()
 
 main()
