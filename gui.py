@@ -1,3 +1,4 @@
+
 import sys
 import sqlite3
 from datetime import datetime
@@ -95,8 +96,6 @@ class TransactionListDialog(QDialog):
         self.table = QTableWidget()
         self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels(["ID", "Összeg", "Kategória", "Típus", "Dátum"])
-
-        # 🔥 FONTOS FIX
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
 
@@ -170,7 +169,7 @@ class FinanceTrackerGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Finance Tracker")
-        self.setGeometry(200, 200, 450, 350)
+        self.setGeometry(200, 200, 450, 380)
 
         self.title_label = QLabel("💰 Finance Tracker GUI")
 
@@ -178,6 +177,7 @@ class FinanceTrackerGUI(QWidget):
         self.list_button = QPushButton("Tranzakciók listázása")
         self.summary_button = QPushButton("Összesítés")
         self.chart_button = QPushButton("Kiadások diagram")
+        self.income_expense_chart_button = QPushButton("Bevétel vs kiadás diagram")
         self.exit_button = QPushButton("Kilépés")
 
         layout = QVBoxLayout()
@@ -186,6 +186,7 @@ class FinanceTrackerGUI(QWidget):
         layout.addWidget(self.list_button)
         layout.addWidget(self.summary_button)
         layout.addWidget(self.chart_button)
+        layout.addWidget(self.income_expense_chart_button)
         layout.addWidget(self.exit_button)
 
         self.setLayout(layout)
@@ -194,6 +195,7 @@ class FinanceTrackerGUI(QWidget):
         self.list_button.clicked.connect(self.list_transactions)
         self.summary_button.clicked.connect(self.show_summary)
         self.chart_button.clicked.connect(self.show_expense_chart)
+        self.income_expense_chart_button.clicked.connect(self.show_income_expense_chart)
         self.exit_button.clicked.connect(self.close)
 
     def add_transaction(self):
@@ -256,6 +258,32 @@ class FinanceTrackerGUI(QWidget):
         plt.bar(categories, amounts)
         plt.title("Kiadások kategória szerint")
         plt.xlabel("Kategória")
+        plt.ylabel("Összeg")
+        plt.show()
+
+    def show_income_expense_chart(self):
+        conn = sqlite3.connect("finance.db")
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT type, SUM(amount)
+        FROM transactions
+        GROUP BY type
+        """)
+
+        data = cursor.fetchall()
+        conn.close()
+
+        if not data:
+            QMessageBox.information(self, "Diagram", "Nincs adat a diagramhoz.")
+            return
+
+        labels = [row[0] for row in data]
+        amounts = [row[1] for row in data]
+
+        plt.bar(labels, amounts)
+        plt.title("Bevétel vs kiadás")
+        plt.xlabel("Típus")
         plt.ylabel("Összeg")
         plt.show()
 
