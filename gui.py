@@ -1,6 +1,8 @@
 import sys
 import sqlite3
 from datetime import datetime
+import matplotlib.pyplot as plt
+
 from PyQt6.QtWidgets import (
     QApplication,
     QWidget,
@@ -11,7 +13,9 @@ from PyQt6.QtWidgets import (
     QDialog,
     QFormLayout,
     QLineEdit,
-    QComboBox
+    QComboBox,
+    QTableWidget,
+    QTableWidgetItem
 )
 
 
@@ -76,37 +80,23 @@ class AddTransactionDialog(QDialog):
         self.accept()
 
 
-class FinanceTrackerGUI(QWidget):
+class TransactionListDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Finance Tracker")
-        self.setGeometry(200, 200, 400, 300)
+        self.setWindowTitle("Tranzakciók listája")
+        self.setGeometry(250, 250, 800, 400)
 
-        self.title_label = QLabel("💰 Finance Tracker GUI")
-        self.add_button = QPushButton("Új tranzakció hozzáadása")
-        self.list_button = QPushButton("Tranzakciók listázása")
-        self.summary_button = QPushButton("Összesítés")
-        self.exit_button = QPushButton("Kilépés")
+        self.table = QTableWidget()
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels(["ID", "Összeg", "Kategória", "Típus", "Dátum"])
 
         layout = QVBoxLayout()
-        layout.addWidget(self.title_label)
-        layout.addWidget(self.add_button)
-        layout.addWidget(self.list_button)
-        layout.addWidget(self.summary_button)
-        layout.addWidget(self.exit_button)
-
+        layout.addWidget(self.table)
         self.setLayout(layout)
 
-        self.add_button.clicked.connect(self.add_transaction)
-        self.list_button.clicked.connect(self.list_transactions)
-        self.summary_button.clicked.connect(self.show_summary)
-        self.exit_button.clicked.connect(self.close)
+        self.load_data()
 
-    def add_transaction(self):
-        dialog = AddTransactionDialog()
-        dialog.exec()
-
-    def list_transactions(self):
+    def load_data(self):
         conn = sqlite3.connect("finance.db")
         cursor = conn.cursor()
 
@@ -114,22 +104,51 @@ class FinanceTrackerGUI(QWidget):
         rows = cursor.fetchall()
         conn.close()
 
-        if not rows:
-            QMessageBox.information(self, "Tranzakciók", "Nincs még tranzakció.")
-            return
+        self.table.setRowCount(len(rows))
 
-        message = ""
+        for row_index, row_data in enumerate(rows):
+            for col_index, value in enumerate(row_data):
+                self.table.setItem(row_index, col_index, QTableWidgetItem(str(value)))
 
-        for row in rows:
-            message += (
-                f"ID: {row[0]} | "
-                f"Összeg: {row[1]} | "
-                f"Kategória: {row[2]} | "
-                f"Típus: {row[3]} | "
-                f"Dátum: {row[4]}\n"
-            )
+        self.table.resizeColumnsToContents()
 
-        QMessageBox.information(self, "Tranzakciók", message)
+
+class FinanceTrackerGUI(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Finance Tracker")
+        self.setGeometry(200, 200, 450, 350)
+
+        self.title_label = QLabel("💰 Finance Tracker GUI")
+        self.add_button = QPushButton("Új tranzakció hozzáadása")
+        self.list_button = QPushButton("Tranzakciók listázása")
+        self.summary_button = QPushButton("Összesítés")
+        self.chart_button = QPushButton("Kiadások diagram")
+        self.exit_button = QPushButton("Kilépés")
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.add_button)
+        layout.addWidget(self.list_button)
+        layout.addWidget(self.summary_button)
+        layout.addWidget(self.chart_button)
+        layout.addWidget(self.exit_button)
+
+        self.setLayout(layout)
+
+        self.add_button.clicked.connect(self.add_transaction)
+        self.list_button.clicked.connect(self.list_transactions)
+        self.summary_button.clicked.connect(self.show_summary)
+        self.chart_button.clicked.connect(self.show_expense_chart)
+        self.exit_button.clicked.connect(self.close)
+
+    def add_transaction(self):
+        dialog = AddTransactionDialog()
+        dialog.exec()
+
+    def list_transactions(self):
+        dialog = TransactionListDialog()
+        dialog.exec()
 
     def show_summary(self):
         conn = sqlite3.connect("finance.db")
@@ -158,6 +177,33 @@ class FinanceTrackerGUI(QWidget):
         )
 
         QMessageBox.information(self, "Összesítés", message)
+
+    def show_expense_chart(self):
+        conn = sqlite3.connect("finance.db")
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT category, SUM(amount)
+        FROM transactions
+        WHERE type = 'expense'
+        GROUP BY category
+        """)
+
+        data = cursor.fetchall()
+        conn.close()
+
+        if not data:
+            QMessageBox.information(self, "Diagram", "Nincs kiadás adat.")
+            return
+
+        categories = [row[0] for row in data]
+        amounts = [row[1] for row in data]
+
+        plt.bar(categories, amounts)
+        plt.title("Kiadások kategória szerint")
+        plt.xlabel("Kategória")
+        plt.ylabel("Összeg")
+        plt.show()
 
 
 app = QApplication(sys.argv)
