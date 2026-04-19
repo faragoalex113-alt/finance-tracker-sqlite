@@ -1,4 +1,5 @@
 import sys
+import sqlite3
 from PyQt6.QtWidgets import (
     QApplication,
     QWidget,
@@ -42,7 +43,32 @@ class FinanceTrackerGUI(QWidget):
         QMessageBox.information(self, "Info", "Itt lesz a tranzakciók listázása.")
 
     def show_summary(self):
-        QMessageBox.information(self, "Info", "Itt lesz az összesítés.")
+        conn = sqlite3.connect("finance.db")
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM transactions")
+        rows = cursor.fetchall()
+
+        total_income = 0
+        total_expense = 0
+
+        for row in rows:
+            if row[3] == "income":
+                total_income += row[1]
+            elif row[3] == "expense":
+                total_expense += row[1]
+
+        balance = total_income - total_expense
+
+        conn.close()
+
+        message = (
+            f"Összes bevétel: {total_income}\n"
+            f"Összes kiadás: {total_expense}\n"
+            f"Egyenleg: {balance}"
+        )
+
+        QMessageBox.information(self, "Összesítés", message)
 
 
 app = QApplication(sys.argv)
