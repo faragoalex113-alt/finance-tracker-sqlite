@@ -19,6 +19,9 @@ from PyQt6.QtWidgets import (
 )
 
 
+# =========================
+# ÚJ TRANZAKCIÓ ABLAK
+# =========================
 class AddTransactionDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -80,6 +83,9 @@ class AddTransactionDialog(QDialog):
         self.accept()
 
 
+# =========================
+# TÁBLÁZAT + TÖRLÉS
+# =========================
 class TransactionListDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -90,9 +96,18 @@ class TransactionListDialog(QDialog):
         self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels(["ID", "Összeg", "Kategória", "Típus", "Dátum"])
 
+        # 🔥 FONTOS FIX
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+
+        self.delete_button = QPushButton("Kijelölt tranzakció törlése")
+
         layout = QVBoxLayout()
         layout.addWidget(self.table)
+        layout.addWidget(self.delete_button)
         self.setLayout(layout)
+
+        self.delete_button.clicked.connect(self.delete_selected_transaction)
 
         self.load_data()
 
@@ -104,6 +119,7 @@ class TransactionListDialog(QDialog):
         rows = cursor.fetchall()
         conn.close()
 
+        self.table.setRowCount(0)
         self.table.setRowCount(len(rows))
 
         for row_index, row_data in enumerate(rows):
@@ -112,7 +128,44 @@ class TransactionListDialog(QDialog):
 
         self.table.resizeColumnsToContents()
 
+    def delete_selected_transaction(self):
+        selected_items = self.table.selectedItems()
 
+        if not selected_items:
+            QMessageBox.warning(self, "Hiba", "Először jelölj ki egy tranzakciót.")
+            return
+
+        selected_row = selected_items[0].row()
+        transaction_id_item = self.table.item(selected_row, 0)
+
+        if transaction_id_item is None:
+            QMessageBox.warning(self, "Hiba", "Nem sikerült kiolvasni az ID-t.")
+            return
+
+        transaction_id = int(transaction_id_item.text())
+
+        reply = QMessageBox.question(
+            self,
+            "Megerősítés",
+            "Biztos törlöd a kijelölt tranzakciót?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            conn = sqlite3.connect("finance.db")
+            cursor = conn.cursor()
+
+            cursor.execute("DELETE FROM transactions WHERE id = ?", (transaction_id,))
+            conn.commit()
+            conn.close()
+
+            QMessageBox.information(self, "Siker", "Tranzakció törölve.")
+            self.load_data()
+
+
+# =========================
+# FŐ ABLAK
+# =========================
 class FinanceTrackerGUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -120,6 +173,7 @@ class FinanceTrackerGUI(QWidget):
         self.setGeometry(200, 200, 450, 350)
 
         self.title_label = QLabel("💰 Finance Tracker GUI")
+
         self.add_button = QPushButton("Új tranzakció hozzáadása")
         self.list_button = QPushButton("Tranzakciók listázása")
         self.summary_button = QPushButton("Összesítés")
@@ -206,7 +260,11 @@ class FinanceTrackerGUI(QWidget):
         plt.show()
 
 
+# =========================
+# APP INDÍTÁS
+# =========================
 app = QApplication(sys.argv)
 window = FinanceTrackerGUI()
 window.show()
 sys.exit(app.exec())
+
