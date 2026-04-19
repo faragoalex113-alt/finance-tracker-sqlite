@@ -40,7 +40,29 @@ class FinanceTrackerGUI(QWidget):
         QMessageBox.information(self, "Info", "Itt lesz az új tranzakció hozzáadása.")
 
     def list_transactions(self):
-        QMessageBox.information(self, "Info", "Itt lesz a tranzakciók listázása.")
+        conn = sqlite3.connect("finance.db")
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM transactions")
+        rows = cursor.fetchall()
+        conn.close()
+
+        if not rows:
+            QMessageBox.information(self, "Tranzakciók", "Nincs még tranzakció.")
+            return
+
+        message = ""
+
+        for row in rows:
+            message += (
+                f"ID: {row[0]} | "
+                f"Összeg: {row[1]} | "
+                f"Kategória: {row[2]} | "
+                f"Típus: {row[3]} | "
+                f"Dátum: {row[4]}\n"
+            )
+
+        QMessageBox.information(self, "Tranzakciók", message)
 
     def show_summary(self):
         conn = sqlite3.connect("finance.db")
