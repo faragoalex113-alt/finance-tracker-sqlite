@@ -163,19 +163,81 @@ class TransactionListDialog(QDialog):
 
 
 # =========================
+# HAVI ÖSSZESÍTÉS ABLAK
+# =========================
+class MonthlySummaryDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Havi összesítés")
+        self.setGeometry(320, 320, 320, 180)
+
+        self.month_input = QLineEdit()
+        self.month_input.setPlaceholderText("pl. 2026-04")
+
+        self.summary_button = QPushButton("Összesítés lekérése")
+
+        layout = QFormLayout()
+        layout.addRow("Hónap:", self.month_input)
+        layout.addRow(self.summary_button)
+
+        self.setLayout(layout)
+
+        self.summary_button.clicked.connect(self.show_monthly_summary)
+
+    def show_monthly_summary(self):
+        month = self.month_input.text().strip()
+
+        if month == "":
+            QMessageBox.warning(self, "Hiba", "A hónap nem lehet üres.")
+            return
+
+        conn = sqlite3.connect("finance.db")
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM transactions WHERE date LIKE ?", (f"{month}%",))
+        rows = cursor.fetchall()
+        conn.close()
+
+        if not rows:
+            QMessageBox.information(self, "Havi összesítés", "Nincs adat erre a hónapra.")
+            return
+
+        total_income = 0
+        total_expense = 0
+
+        for row in rows:
+            if row[3] == "income":
+                total_income += row[1]
+            elif row[3] == "expense":
+                total_expense += row[1]
+
+        balance = total_income - total_expense
+
+        message = (
+            f"Hónap: {month}\n"
+            f"Bevétel: {total_income}\n"
+            f"Kiadás: {total_expense}\n"
+            f"Egyenleg: {balance}"
+        )
+
+        QMessageBox.information(self, "Havi összesítés", message)
+
+
+# =========================
 # FŐ ABLAK
 # =========================
 class FinanceTrackerGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Finance Tracker")
-        self.setGeometry(200, 200, 450, 380)
+        self.setGeometry(200, 200, 450, 430)
 
         self.title_label = QLabel("💰 Finance Tracker GUI")
 
         self.add_button = QPushButton("Új tranzakció hozzáadása")
         self.list_button = QPushButton("Tranzakciók listázása")
         self.summary_button = QPushButton("Összesítés")
+        self.monthly_summary_button = QPushButton("Havi összesítés")
         self.chart_button = QPushButton("Kiadások diagram")
         self.income_expense_chart_button = QPushButton("Bevétel vs kiadás diagram")
         self.exit_button = QPushButton("Kilépés")
@@ -185,6 +247,7 @@ class FinanceTrackerGUI(QWidget):
         layout.addWidget(self.add_button)
         layout.addWidget(self.list_button)
         layout.addWidget(self.summary_button)
+        layout.addWidget(self.monthly_summary_button)
         layout.addWidget(self.chart_button)
         layout.addWidget(self.income_expense_chart_button)
         layout.addWidget(self.exit_button)
@@ -194,6 +257,7 @@ class FinanceTrackerGUI(QWidget):
         self.add_button.clicked.connect(self.add_transaction)
         self.list_button.clicked.connect(self.list_transactions)
         self.summary_button.clicked.connect(self.show_summary)
+        self.monthly_summary_button.clicked.connect(self.show_monthly_summary_dialog)
         self.chart_button.clicked.connect(self.show_expense_chart)
         self.income_expense_chart_button.clicked.connect(self.show_income_expense_chart)
         self.exit_button.clicked.connect(self.close)
@@ -233,6 +297,10 @@ class FinanceTrackerGUI(QWidget):
         )
 
         QMessageBox.information(self, "Összesítés", message)
+
+    def show_monthly_summary_dialog(self):
+        dialog = MonthlySummaryDialog()
+        dialog.exec()
 
     def show_expense_chart(self):
         conn = sqlite3.connect("finance.db")
