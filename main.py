@@ -94,7 +94,7 @@ def add_transaction():
     cursor = conn.cursor()
 
     amount = get_valid_amount()
-    category = input("Kategória: ").strip().lower()
+    category = get_valid_category()
     type_ = get_valid_type()
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -257,6 +257,15 @@ def search_by_category():
             print(f"ID: {row[0]} | Összeg: {row[1]} | Kategória: {row[2]} | Típus: {row[3]} | Dátum: {row[4]}")
 
     conn.close()
+
+def get_valid_category():
+    while True:
+        category = input("Kategória: ").strip().lower()
+
+        if category == "":
+            print("A kategória nem lehet üres.")
+        else:
+            return category
 
 def monthly_summary():
     conn = sqlite3.connect("finance.db")
