@@ -1,13 +1,79 @@
 import sys
 import sqlite3
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QApplication,
     QWidget,
     QLabel,
     QPushButton,
     QVBoxLayout,
-    QMessageBox
+    QMessageBox,
+    QDialog,
+    QFormLayout,
+    QLineEdit,
+    QComboBox
 )
+
+
+class AddTransactionDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Új tranzakció hozzáadása")
+        self.setGeometry(300, 300, 300, 200)
+
+        self.amount_input = QLineEdit()
+        self.category_input = QLineEdit()
+        self.type_input = QComboBox()
+        self.type_input.addItems(["income", "expense"])
+
+        self.save_button = QPushButton("Mentés")
+
+        layout = QFormLayout()
+        layout.addRow("Összeg:", self.amount_input)
+        layout.addRow("Kategória:", self.category_input)
+        layout.addRow("Típus:", self.type_input)
+        layout.addRow(self.save_button)
+
+        self.setLayout(layout)
+
+        self.save_button.clicked.connect(self.save_transaction)
+
+    def save_transaction(self):
+        amount_text = self.amount_input.text().strip()
+        category = self.category_input.text().strip().lower()
+        type_ = self.type_input.currentText()
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if amount_text == "":
+            QMessageBox.warning(self, "Hiba", "Az összeg nem lehet üres.")
+            return
+
+        try:
+            amount = float(amount_text)
+            if amount <= 0:
+                QMessageBox.warning(self, "Hiba", "Az összeg legyen 0-nál nagyobb.")
+                return
+        except ValueError:
+            QMessageBox.warning(self, "Hiba", "Az összeg csak szám lehet.")
+            return
+
+        if category == "":
+            QMessageBox.warning(self, "Hiba", "A kategória nem lehet üres.")
+            return
+
+        conn = sqlite3.connect("finance.db")
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        INSERT INTO transactions (amount, category, type, date)
+        VALUES (?, ?, ?, ?)
+        """, (amount, category, type_, date))
+
+        conn.commit()
+        conn.close()
+
+        QMessageBox.information(self, "Siker", "Tranzakció mentve.")
+        self.accept()
 
 
 class FinanceTrackerGUI(QWidget):
@@ -37,7 +103,8 @@ class FinanceTrackerGUI(QWidget):
         self.exit_button.clicked.connect(self.close)
 
     def add_transaction(self):
-        QMessageBox.information(self, "Info", "Itt lesz az új tranzakció hozzáadása.")
+        dialog = AddTransactionDialog()
+        dialog.exec()
 
     def list_transactions(self):
         conn = sqlite3.connect("finance.db")
