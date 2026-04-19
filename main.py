@@ -1,6 +1,33 @@
 import sqlite3
+import matplotlib.pyplot as plt
 from datetime import datetime
 
+def expense_chart():
+    conn = sqlite3.connect("finance.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT category, SUM(amount)
+    FROM transactions
+    WHERE type = 'expense'
+    GROUP BY category
+    """)
+
+    data = cursor.fetchall()
+    conn.close()
+
+    if not data:
+        print("Nincs kiadás adat.")
+        return
+
+    categories = [row[0] for row in data]
+    amounts = [row[1] for row in data]
+
+    plt.bar(categories, amounts)
+    plt.title("Kiadások kategória szerint")
+    plt.xlabel("Kategória")
+    plt.ylabel("Összeg")
+    plt.show()
 
 def create_table():
     conn = sqlite3.connect("finance.db")
@@ -67,7 +94,7 @@ def add_transaction():
     cursor = conn.cursor()
 
     amount = get_valid_amount()
-    category = input("Kategória: ").strip()
+    category = input("Kategória: ").strip().lower()
     type_ = get_valid_type()
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -184,7 +211,8 @@ def main():
         print("6 - Csak kiadások listázása")
         print("7 - Keresés kategória alapján")
         print("8 - Havi összesítés")
-        print("9 - Kilépés")
+        print("9 - Kiadások diagram")
+        print("10 - Kilépés")
 
         choice = input("Válassz egy opciót: ").strip()
 
@@ -205,6 +233,8 @@ def main():
         elif choice == "8":
             monthly_summary()
         elif choice == "9":
+            expense_chart()
+        elif choice == "10":
             print("Kilépés...")
             break
         else:
