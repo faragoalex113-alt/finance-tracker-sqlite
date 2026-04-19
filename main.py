@@ -212,7 +212,8 @@ def main():
         print("7 - Keresés kategória alapján")
         print("8 - Havi összesítés")
         print("9 - Kiadások diagram")
-        print("10 - Kilépés")
+        print("10 - Bevétel vs kiadás diagram")
+        print("11 - Kilépés")
 
         choice = input("Válassz egy opciót: ").strip()
 
@@ -235,8 +236,11 @@ def main():
         elif choice == "9":
             expense_chart()
         elif choice == "10":
+            income_expense_chart()
+        elif choice == "11":
             print("Kilépés...")
             break
+
         else:
             print("Érvénytelen választás, próbáld újra.")
 
@@ -266,6 +270,33 @@ def get_valid_category():
             print("A kategória nem lehet üres.")
         else:
             return category
+
+
+def income_expense_chart():
+    conn = sqlite3.connect("finance.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT type, SUM(amount)
+    FROM transactions
+    GROUP BY type
+    """)
+
+    data = cursor.fetchall()
+    conn.close()
+
+    if not data:
+        print("Nincs adat a diagramhoz.")
+        return
+
+    labels = [row[0] for row in data]
+    amounts = [row[1] for row in data]
+
+    plt.bar(labels, amounts)
+    plt.title("Bevétel vs kiadás")
+    plt.xlabel("Típus")
+    plt.ylabel("Összeg")
+    plt.show()
 
 def monthly_summary():
     conn = sqlite3.connect("finance.db")
