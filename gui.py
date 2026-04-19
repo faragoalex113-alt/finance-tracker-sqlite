@@ -224,13 +224,68 @@ class MonthlySummaryDialog(QDialog):
 
 
 # =========================
+# KATEGÓRIA KERESÉS ABLAK
+# =========================
+class CategorySearchDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Keresés kategória alapján")
+        self.setGeometry(260, 260, 800, 420)
+
+        self.category_input = QLineEdit()
+        self.category_input.setPlaceholderText("pl. kaja")
+
+        self.search_button = QPushButton("Keresés")
+
+        self.table = QTableWidget()
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels(["ID", "Összeg", "Kategória", "Típus", "Dátum"])
+
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Kategória:"))
+        layout.addWidget(self.category_input)
+        layout.addWidget(self.search_button)
+        layout.addWidget(self.table)
+
+        self.setLayout(layout)
+
+        self.search_button.clicked.connect(self.search_category)
+
+    def search_category(self):
+        category = self.category_input.text().strip().lower()
+
+        if category == "":
+            QMessageBox.warning(self, "Hiba", "A kategória nem lehet üres.")
+            return
+
+        conn = sqlite3.connect("finance.db")
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM transactions WHERE category = ?", (category,))
+        rows = cursor.fetchall()
+        conn.close()
+
+        self.table.setRowCount(0)
+        self.table.setRowCount(len(rows))
+
+        for row_index, row_data in enumerate(rows):
+            for col_index, value in enumerate(row_data):
+                self.table.setItem(row_index, col_index, QTableWidgetItem(str(value)))
+
+        self.table.resizeColumnsToContents()
+
+        if not rows:
+            QMessageBox.information(self, "Keresés", "Nincs ilyen kategóriájú tranzakció.")
+
+
+# =========================
 # FŐ ABLAK
 # =========================
 class FinanceTrackerGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Finance Tracker")
-        self.setGeometry(200, 200, 450, 430)
+        self.setGeometry(200, 200, 450, 470)
 
         self.title_label = QLabel("💰 Finance Tracker GUI")
 
@@ -238,6 +293,7 @@ class FinanceTrackerGUI(QWidget):
         self.list_button = QPushButton("Tranzakciók listázása")
         self.summary_button = QPushButton("Összesítés")
         self.monthly_summary_button = QPushButton("Havi összesítés")
+        self.category_search_button = QPushButton("Keresés kategória alapján")
         self.chart_button = QPushButton("Kiadások diagram")
         self.income_expense_chart_button = QPushButton("Bevétel vs kiadás diagram")
         self.exit_button = QPushButton("Kilépés")
@@ -248,6 +304,7 @@ class FinanceTrackerGUI(QWidget):
         layout.addWidget(self.list_button)
         layout.addWidget(self.summary_button)
         layout.addWidget(self.monthly_summary_button)
+        layout.addWidget(self.category_search_button)
         layout.addWidget(self.chart_button)
         layout.addWidget(self.income_expense_chart_button)
         layout.addWidget(self.exit_button)
@@ -258,6 +315,7 @@ class FinanceTrackerGUI(QWidget):
         self.list_button.clicked.connect(self.list_transactions)
         self.summary_button.clicked.connect(self.show_summary)
         self.monthly_summary_button.clicked.connect(self.show_monthly_summary_dialog)
+        self.category_search_button.clicked.connect(self.show_category_search_dialog)
         self.chart_button.clicked.connect(self.show_expense_chart)
         self.income_expense_chart_button.clicked.connect(self.show_income_expense_chart)
         self.exit_button.clicked.connect(self.close)
@@ -300,6 +358,10 @@ class FinanceTrackerGUI(QWidget):
 
     def show_monthly_summary_dialog(self):
         dialog = MonthlySummaryDialog()
+        dialog.exec()
+
+    def show_category_search_dialog(self):
+        dialog = CategorySearchDialog()
         dialog.exec()
 
     def show_expense_chart(self):
